@@ -17,6 +17,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -49,10 +53,18 @@ public class TodoService {
         );
     }
 
-    public Page<TodoResponse> getTodos(int page, int size) {
+    public Page<TodoResponse> getTodos(String startDate, String endDate, int page, int size, String weather) {
         Pageable pageable = PageRequest.of(page - 1, size);
 
-        Page<Todo> todos = todoRepository.findAllByOrderByModifiedAtDesc(pageable);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDate parseStartDate = LocalDate.parse(startDate, formatter);
+        LocalDate parseEndDate = LocalDate.parse(endDate, formatter);
+
+        // LocalDate를 LocalDateTime으로 변환 (시작일의 00:00:00, 종료일의 23:59:59로 설정)
+        LocalDateTime startDateTime = parseStartDate.atStartOfDay(); // 시작일의 00:00:00
+        LocalDateTime endDateTime = parseEndDate.atTime(23, 59, 59); // 종료일의 23:59:59
+
+        Page<Todo> todos = todoRepository.findAllByOrderByModifiedAtDesc(startDateTime, endDateTime, weather, pageable);
 
         return todos.map(todo -> new TodoResponse(
                 todo.getId(),
